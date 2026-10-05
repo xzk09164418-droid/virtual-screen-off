@@ -1,4 +1,4 @@
-$ErrorActionPreference = 'Stop'
+﻿$ErrorActionPreference = 'Stop'
 $exe = Join-Path (Split-Path $PSScriptRoot -Parent) 'release\ScreenHotkey.exe'
 if (-not (Test-Path -LiteralPath $exe)) { throw "Missing executable: $exe" }
 $process = Start-Process -FilePath $exe -ArgumentList '--apply-config' -WindowStyle Hidden -Wait -PassThru

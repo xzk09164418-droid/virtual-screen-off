@@ -1,4 +1,4 @@
-param([string]$OutputDirectory = (Join-Path (Split-Path $PSScriptRoot -Parent) 'release'))
+﻿param([string]$OutputDirectory = (Join-Path (Split-Path $PSScriptRoot -Parent) 'release'))
 $ErrorActionPreference = 'Stop'
 $release = $OutputDirectory
 New-Item -ItemType Directory -Path $release -Force | Out-Null

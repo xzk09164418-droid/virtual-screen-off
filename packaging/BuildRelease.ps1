@@ -1,5 +1,13 @@
 ﻿$ErrorActionPreference = 'Stop'
 Set-Location (Split-Path $PSScriptRoot -Parent)
+# Windows PowerShell 5.1 needs a BOM to recognize non-ASCII UTF-8 scripts.
+foreach ($script in Get-ChildItem code -Filter '*.ps1') {
+    $bytes = [System.IO.File]::ReadAllBytes($script.FullName)
+    if (@($bytes | Where-Object { $_ -gt 127 }).Count -gt 0 -and
+        -not ($bytes[0] -eq 239 -and $bytes[1] -eq 187 -and $bytes[2] -eq 191)) {
+        throw "Save $($script.Name) as UTF-8 with BOM for Windows PowerShell 5.1"
+    }
+}
 $version = (Get-Content (Join-Path $PSScriptRoot 'VERSION') -Raw).Trim()
 if ($version -notmatch '^v[0-9]+\.[0-9]+\.[0-9]+$') { throw 'Invalid version' }
 $name = 'virtual-screen-off'
