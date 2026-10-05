@@ -11,7 +11,17 @@ if ($LASTEXITCODE -ne 0) { throw "热键程序编译失败：$LASTEXITCODE" }
 & $compiler /nologo /target:exe /platform:x64 /main:ScreenStatus /reference:System.Web.Extensions.dll ("/out:" + (Join-Path $release 'ScreenStatus.exe')) (Join-Path $PSScriptRoot 'DisplayNative.cs') (Join-Path $PSScriptRoot 'ScreenStatus.cs')
 if ($LASTEXITCODE -ne 0) { throw "状态接口编译失败：$LASTEXITCODE" }
 
-$refs=@('Windows.Foundation','Windows.Media','Windows.Devices','Windows.Graphics','Windows.Storage') | ForEach-Object { '/r:C:\Windows\System32\WinMetadata\'+$_+'.winmd' }
+$metadata = @('Windows.Foundation','Windows.Media','Windows.Devices','Windows.Graphics','Windows.Storage') | ForEach-Object { Join-Path $env:WINDIR ('System32\WinMetadata\'+$_+'.winmd') }
+if (@($metadata | Where-Object { -not (Test-Path -LiteralPath $_) }).Count -gt 0) {
+    # Windows Server build agents may omit desktop WinRT metadata. Use the
+    # installed Windows SDK union metadata for compilation in that environment.
+    $sdkRoot = Join-Path ${env:ProgramFiles(x86)} 'Windows Kits\10\UnionMetadata'
+    $sdk = Get-ChildItem -LiteralPath $sdkRoot -Filter Windows.winmd -Recurse -ErrorAction SilentlyContinue |
+        Sort-Object FullName -Descending | Select-Object -First 1
+    if (-not $sdk) { throw 'WinRT metadata missing: install a Windows 10/11 SDK or build on desktop Windows.' }
+    $metadata = @($sdk.FullName)
+}
+$refs = @($metadata | ForEach-Object { '/r:' + $_ })
 $refs+=@('System.Runtime','System.Runtime.InteropServices.WindowsRuntime','System.Threading.Tasks','System.Collections') | ForEach-Object { Get-ChildItem ("C:\Windows\Microsoft.NET\assembly\GAC_MSIL\"+$_) -Recurse -Filter '*.dll' | ForEach-Object { '/r:'+ $_.FullName } }
 & $compiler /nologo /target:exe /platform:x64 /r:System.Web.Extensions.dll $refs ("/out:"+ (Join-Path $release 'IRPresence.exe')) (Join-Path $PSScriptRoot 'IRPresence.cs') (Join-Path $PSScriptRoot 'ToFGate.cs') (Join-Path $PSScriptRoot 'ToFConfirmation.cs')
 if($LASTEXITCODE -ne 0){throw 'IR helper compilation failed'}

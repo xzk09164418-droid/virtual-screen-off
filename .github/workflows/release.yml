@@ -21,7 +21,17 @@ jobs:
           persist-credentials: false
       - name: Build and validate package
         shell: powershell
-        run: ./packaging/BuildRelease.ps1
+        run: |
+          $buildLog = Join-Path $env:RUNNER_TEMP 'release-build.log'
+          try {
+            & ./packaging/BuildRelease.ps1 *> $buildLog
+            Get-Content $buildLog
+          } catch {
+            $detail = ((Get-Content $buildLog -Tail 35) -join "`n") + "`n" + $_.Exception.Message
+            $escaped = $detail.Replace('%','%25').Replace("`r",'%0D').Replace("`n",'%0A')
+            Write-Output "::error title=Release build diagnostics::$escaped"
+            throw
+          }
       - name: Publish release with verified assets
         shell: powershell
         env:
